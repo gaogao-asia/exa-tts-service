@@ -1,0 +1,77 @@
+# Local development only. Staging and production run on ECS Fargate as their
+# own service (see README "Deployment"); this file is not used there.
+#
+#   docker network create exa-internal   # once per host, shared with exa-dashboard-api
+#   docker compose --profile dev up --build
+#
+# exa-dashboard-api (in compose) reaches it at http://exa-tts:8080.
+name: exa-tts-service
+
+services:
+  exa-tts:
+    profiles: ["dev"]
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: dev
+    env_file:
+      - path: .env.dev
+        required: false
+    environment:
+      FLASK_ENV: development
+    ports:
+      - "127.0.0.1:${TTS_PORT:-8090}:8080"
+    volumes:
+      - ./app:/service/app
+    networks:
+      exa-internal:
+        aliases:
+          - exa-tts
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8080/health')"]
+      interval: 15s
+      timeout: 5s
+      start_period: 60s
+      retries: 3
+    deploy:
+      resources:
+        limits:
+          cpus: "2.0"
+          memory: 3G
+
+  # Production image locally (gunicorn, token required, no published port).
+  exa-tts-prod:
+    profiles: ["prod"]
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: prod
+    env_file:
+      - path: .env.dev
+        required: false
+    restart: unless-stopped
+    networks:
+      exa-internal:
+        aliases:
+          - exa-tts
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8080/health')"]
+      interval: 30s
+      timeout: 10s
+      start_period: 60s
+      retries: 3
+    deploy:
+      resources:
+        limits:
+          cpus: "2.0"
+          memory: 3G
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+networks:
+  exa-internal:
+    external: true
+    name: exa-internal
