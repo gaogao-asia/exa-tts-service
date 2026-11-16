@@ -60,15 +60,6 @@ This runs as its **own ECS service** with its own task definition, never as a si
 
 [requirements.txt](requirements.txt) pins every package that can change pronunciation: `kokoro 0.9.4`, `misaki 0.9.4`, `torch 2.15.0+cpu`, `spacy 3.8.18` + `en_core_web_sm 3.8.0`, `phonemizer-fork 3.3.2`, `soundfile 0.14.0` (bundled libsndfile 1.2.2, MP3 supported). The base image is `python:3.12-slim-bookworm`, which provides the `espeak-ng` apt package. The image is about 2.9 GB uncompressed.
 
-## Latency
-
-Measured locally (WSL, 22 cores, 2 workers, warm): 1.7–3.9 s for 17–118 characters. These are **not** production numbers. Run the benchmark on the Fargate task size before release (spec: investigate if first generation regularly takes more than 5 s) and record the results here:
-
-| Task size | 50 chars p50/p95 | 150 chars | 400 chars | 1000 chars | 5 concurrent |
-|---|---|---|---|---|---|
-| _1 vCPU / 3 GB_ | | | | | |
-| _2 vCPU / 4 GB_ | | | | | |
-
 ## Upgrade runbook
 
 Any change to the pins, the base image or [app/settings.py](app/settings.py) can change how clips sound. Cached clips in S3 are keyed by `EXPRESSION_AUDIO_KEY_VERSION` (exa-dashboard-api), not by these versions.
